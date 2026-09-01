@@ -28,6 +28,16 @@ const userSchema = new mongoose.Schema(
     clientCompanyName: {
       type: String,
     },
+    // NEW FIELDS FOR LIFECYCLE MANAGEMENT
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    clientStatus: {
+      type: String,
+      enum: ["active", "previous", "lead"],
+      default: "active",
+    },
   },
   { timestamps: true },
 );

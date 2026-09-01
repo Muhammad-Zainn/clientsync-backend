@@ -57,6 +57,30 @@ exports.getProjects = async (req, res, next) => {
   }
 };
 
+// @desc    Get a single Project by ID
+// @route   GET /api/v1/projects/:id
+// @access  Private
+exports.getProject = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // findOne ensures we also check the tenantId so clients can't spy on other agencies
+    const project = await Project.findOne({
+      _id: id,
+      tenantId: req.tenantId,
+    }).populate("clientId", "fullName email clientCompanyName");
+
+    if (!project) {
+      return res.status(404).json({ error: "Project not found." });
+    }
+
+    // Returning the raw project object directly to match our frontend hook
+    res.status(200).json(project);
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Update a Project
 // @route   PATCH /api/v1/projects/:id
 // @access  Private

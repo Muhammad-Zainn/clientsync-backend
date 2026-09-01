@@ -31,7 +31,7 @@ exports.registerAgency = async (req, res, next) => {
     const passwordHash = await bcrypt.hash(password, salt);
 
     const user = await User.create({
-      tenantId: tenant._id, 
+      tenantId: tenant._id,
       fullName,
       email,
       passwordHash,
@@ -41,7 +41,7 @@ exports.registerAgency = async (req, res, next) => {
     const token = jwt.sign(
       { userId: user._id, tenantId: tenant._id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" }, 
+      { expiresIn: "1d" },
     );
 
     // 6. Send Response back to the frontend
@@ -73,10 +73,21 @@ exports.login = async (req, res, next) => {
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ error: "Invalid email or password." });
+      return res.status(400).json({ error: "Invalid credentials." });
+    }
+
+    // BLOCK DEACTIVATED USERS
+    if (!user.isActive) {
+      return res
+        .status(403)
+        .json({
+          error:
+            "This account has been deactivated. Please contact your agency admin.",
+        });
     }
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
+    // ... continue with your JWT generation
     if (!isMatch) {
       return res.status(401).json({ error: "Invalid email or password." });
     }

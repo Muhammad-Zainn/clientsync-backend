@@ -1,5 +1,12 @@
 const express = require("express");
-const { createUser, getUsers } = require("./user.controller");
+// Make sure updateUser and deleteUser are added to this list!
+const {
+  createUser,
+  getUsers,
+  changePassword,
+  updateUser,
+  deleteUser,
+} = require("./user.controller");
 const requireAuth = require("../../shared/middleware/requireAuth");
 const requireTenant = require("../../shared/middleware/requireTenant");
 
@@ -10,5 +17,8 @@ router.use(requireTenant);
 
 router.post("/", createUser);
 router.get("/", getUsers);
+router.patch("/change-password", changePassword);
+router.patch("/:id", updateUser);
+router.delete("/:id", deleteUser);
 
 module.exports = router;
