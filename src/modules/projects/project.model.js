@@ -12,6 +12,12 @@ const projectSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    assignedStaff: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
     title: {
       type: String,
       required: true,

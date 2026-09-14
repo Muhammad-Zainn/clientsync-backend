@@ -17,7 +17,7 @@ router.use(requireTenant);
 
 router.post("/", createUser);
 router.get("/", getUsers);
-router.patch("/change-password", changePassword);
+router.patch("/changepassword", changePassword);
 router.patch("/:id", updateUser);
 router.delete("/:id", deleteUser);
 

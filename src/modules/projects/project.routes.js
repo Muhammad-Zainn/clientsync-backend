@@ -16,7 +16,7 @@ router.use(requireTenant);
 
 router.post("/", createProject);
 router.get("/", getProjects);
-router.get("/:id", getProject); // <-- Added the single project route
+router.get("/:id", getProject);
 router.patch("/:id", updateProject);
 router.delete("/:id", deleteProject);
 

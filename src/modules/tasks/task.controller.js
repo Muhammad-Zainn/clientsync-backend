@@ -33,9 +33,13 @@ exports.createTask = async (req, res, next) => {
       status: status || "todo",
     });
 
+    const taskData = task.toObject();
+    delete taskData.__v;
+    delete taskData.tenantId;
+
     res.status(201).json({
       message: "Task created successfully!",
-      task,
+      task: taskData,
     });
   } catch (error) {
     next(error);
@@ -49,10 +53,14 @@ exports.getProjectTasks = async (req, res, next) => {
   try {
     const { projectId } = req.params;
 
+    // SANITIZATION: Added .select() and .lean()
     const tasks = await Task.find({
       projectId,
       tenantId: req.tenantId,
-    }).sort({ createdAt: -1 });
+    })
+      .sort({ createdAt: -1 })
+      .select("-__v -tenantId")
+      .lean();
 
     res.status(200).json({
       count: tasks.length,
@@ -71,11 +79,14 @@ exports.updateTask = async (req, res, next) => {
     const { id } = req.params;
     const updates = req.body;
 
+    // SANITIZATION: Chain .select() and .lean() to the update query
     const task = await Task.findOneAndUpdate(
       { _id: id, tenantId: req.tenantId },
       updates,
       { new: true, runValidators: true },
-    );
+    )
+      .select("-__v -tenantId")
+      .lean();
 
     if (!task) {
       return res.status(404).json({ error: "Task not found." });

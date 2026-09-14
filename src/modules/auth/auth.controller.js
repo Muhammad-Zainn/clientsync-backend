@@ -3,6 +3,16 @@ const jwt = require("jsonwebtoken");
 const Tenant = require("../tenants/tenant.model");
 const User = require("../../modules/users/user.model");
 
+const getCookieOptions = () => {
+  const isProduction = process.env.NODE_ENV === "production";
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+  };
+};
+
 // @desc    Register a new Agency (Tenant) and their Admin User
 // @route   POST /api/v1/auth/register
 exports.registerAgency = async (req, res, next) => {
@@ -44,7 +54,8 @@ exports.registerAgency = async (req, res, next) => {
       { expiresIn: "1d" },
     );
 
-    // 6. Send Response back to the frontend
+    res.cookie("token", token, getCookieOptions());
+
     res.status(201).json({
       message: "Agency registered successfully!",
       token,
@@ -76,18 +87,14 @@ exports.login = async (req, res, next) => {
       return res.status(400).json({ error: "Invalid credentials." });
     }
 
-    // BLOCK DEACTIVATED USERS
     if (!user.isActive) {
-      return res
-        .status(403)
-        .json({
-          error:
-            "This account has been deactivated. Please contact your agency admin.",
-        });
+      return res.status(403).json({
+        error:
+          "This account has been deactivated. Please contact your agency admin.",
+      });
     }
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
-    // ... continue with your JWT generation
     if (!isMatch) {
       return res.status(401).json({ error: "Invalid email or password." });
     }
@@ -97,6 +104,8 @@ exports.login = async (req, res, next) => {
       process.env.JWT_SECRET,
       { expiresIn: "1d" },
     );
+
+    res.cookie("token", token, getCookieOptions());
 
     res.status(200).json({
       message: "Login successful!",
@@ -111,4 +120,11 @@ exports.login = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+// @desc    Logout user and clear cookie
+// @route   POST /api/v1/auth/logout
+exports.logout = async (req, res) => {
+  res.clearCookie("token", getCookieOptions());
+  res.status(200).json({ message: "Logged out successfully." });
 };

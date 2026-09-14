@@ -21,7 +21,6 @@ const taskSchema = new mongoose.Schema(
       ref: "Project",
       required: true,
     },
-    // We keep tenantId to ensure strict data isolation across different agencies
     tenantId: {
       type: String,
       required: true,

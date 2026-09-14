@@ -18,13 +18,19 @@ const documentSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["proposal", "invoice", "api_spec", "contract"],
+      enum: [
+        "proposal",
+        "invoice",
+        "api_spec",
+        "contract",
+        "document",
+        "brief",
+      ],
       required: true,
     },
     totalAmount: {
-      type: Number, 
+      type: Number,
     },
-
     customContent: {
       type: Object,
       default: {},
@@ -34,7 +40,7 @@ const documentSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["draft", "sent", "paid", "signed"],
+      enum: ["draft", "sent", "paid", "signed", "final"],
       default: "draft",
     },
   },

@@ -9,12 +9,17 @@ exports.getDashboardStats = async (req, res, next) => {
   try {
     const tenantId = req.tenantId;
 
-    const projects = await Project.find({ tenantId }).populate(
-      "clientId",
-      "fullName email clientCompanyName",
-    );
+    const projects = await Project.find({ tenantId })
+      .select("-__v -tenantId")
+      .lean();
 
-    const totalPotentialRevenue = projects.reduce(
+    const ActiveProjects = projects.filter(
+      (p) =>
+        p.status === "planning" ||
+        p.status === "in_progress" ||
+        p.status === "client_review",
+    );
+    const totalPotentialRevenue = ActiveProjects.reduce(
       (sum, p) => sum + (p.budget || 0),
       0,
     );
@@ -34,19 +39,24 @@ exports.getDashboardStats = async (req, res, next) => {
       total: projects.length,
     };
 
-    const clients = await User.find({ tenantId, role: "client" }).select(
-      "-passwordHash",
-    );
+    const clients = await User.find({ tenantId, role: "client" })
+      .select("-passwordHash -__v -tenantId")
+      .lean();
 
     const clientDetails = clients.map((client) => {
       const clientProjects = projects.filter(
-        (p) =>
-          p.clientId && p.clientId._id.toString() === client._id.toString(),
+        (p) => p.clientId && p.clientId.toString() === client._id.toString(),
       );
+
       const clientSpend = clientProjects.reduce(
         (sum, p) => sum + (p.budget || 0),
         0,
       );
+
+      const cleanedProjects = clientProjects.map((p) => {
+        const { clientId, ...cleanProject } = p;
+        return cleanProject;
+      });
 
       return {
         id: client._id,
@@ -55,7 +65,7 @@ exports.getDashboardStats = async (req, res, next) => {
         companyName: client.clientCompanyName || "Independent",
         totalProjects: clientProjects.length,
         totalSpend: clientSpend,
-        projects: clientProjects,
+        projects: cleanedProjects,
       };
     });
 
