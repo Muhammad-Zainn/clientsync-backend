@@ -18,6 +18,8 @@ const taskRoutes = require("./modules/tasks/task.routes");
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 connectDB();
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
