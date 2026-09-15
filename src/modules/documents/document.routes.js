@@ -1,7 +1,6 @@
 const express = require("express");
 const multer = require("multer"); 
 const {
-  generateProposal,
   getProjectDocuments,
   uploadDocument, 
   getAllDocuments, // <-- Imported
@@ -20,7 +19,6 @@ const upload = multer({
 router.use(requireAuth);
 router.use(requireTenant);
 
-router.post("/generate-proposal", generateProposal);
 router.get("/project/:projectId", getProjectDocuments);
 router.post("/upload", upload.single("file"), uploadDocument);
 router.get("/", getAllDocuments);

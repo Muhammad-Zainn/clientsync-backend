@@ -1,66 +1,10 @@
 const Document = require("./document.model");
 const Project = require("../projects/project.model");
-const Tenant = require("../../modules/tenants/tenant.model");
-const User = require("../../modules/users/user.model");
-const { generatePDF } = require("../../shared/utils/pdfGenerator");
 const { createClient } = require("@supabase/supabase-js");
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
-
-// @desc    Generate a PDF Proposal for a specific project
-// @route   POST /api/v1/documents/generate-proposal
-// @access  Private
-exports.generateProposal = async (req, res, next) => {
-  try {
-    const { projectId, customContent } = req.body;
-
-    const project = await Project.findOne({
-      _id: projectId,
-      tenantId: req.tenantId,
-    });
-    if (!project) {
-      return res.status(404).json({ error: "Project not found." });
-    }
-
-    const client = await User.findById(project.clientId);
-    const tenant = await Tenant.findById(req.tenantId);
-
-    const templateData = {
-      agencyName: tenant.name,
-      clientName: client.fullName,
-      projectTitle: project.title,
-      projectStatus: project.status,
-      budget: project.budget || 0,
-      customContent: customContent || {},
-    };
-
-    const pdfFileUrl = await generatePDF("proposal", templateData);
-
-    const document = await Document.create({
-      tenantId: req.tenantId,
-      projectId: project._id,
-      title: `${project.title} - Official Proposal`,
-      type: "proposal",
-      totalAmount: project.budget,
-      pdfFileUrl: pdfFileUrl,
-      customContent: customContent || {},
-      status: "draft",
-    });
-
-    const documentData = document.toObject();
-    delete documentData.__v;
-    delete documentData.tenantId;
-
-    res.status(201).json({
-      message: "Proposal PDF generated successfully!",
-      document: documentData,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
 
 // @desc    Get all documents for a specific project
 // @route   GET /api/v1/documents/project/:projectId
@@ -86,12 +30,12 @@ exports.getProjectDocuments = async (req, res, next) => {
   }
 };
 
-// @desc    Upload an external document directly to a project
+// @desc    Upload any document or proposal to a project
 // @route   POST /api/v1/documents/upload
 // @access  Private
 exports.uploadDocument = async (req, res, next) => {
   try {
-    const { projectId, title, type } = req.body;
+    const { projectId, title, type, customContent } = req.body;
     const file = req.file;
 
     if (!file) {
@@ -116,7 +60,8 @@ exports.uploadDocument = async (req, res, next) => {
     }
 
     const safeOriginalName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, "");
-    const fileName = `pdfs/${Date.now()}-${safeOriginalName}`;
+    const filePrefix = type === "proposal" ? "proposal" : "doc";
+    const fileName = `pdfs/${filePrefix}-${Date.now()}-${safeOriginalName}`;
 
     const { error: uploadError } = await supabase.storage
       .from("proposals")
@@ -136,21 +81,35 @@ exports.uploadDocument = async (req, res, next) => {
       .from("proposals")
       .getPublicUrl(fileName);
 
-    const document = await Document.create({
+    const documentPayload = {
       tenantId: req.tenantId,
       projectId: project._id,
       title: title || file.originalname,
       type: type || "document",
       pdfFileUrl: publicUrlData.publicUrl,
-      status: "final",
-    });
+      status: type === "proposal" ? "draft" : "final",
+    };
+
+    if (type === "proposal") {
+      documentPayload.totalAmount = project.budget || 0;
+      documentPayload.title = title || `${project.title} - Official Proposal`;
+
+      if (customContent) {
+        documentPayload.customContent =
+          typeof customContent === "string"
+            ? JSON.parse(customContent)
+            : customContent;
+      }
+    }
+
+    const document = await Document.create(documentPayload);
 
     const documentData = document.toObject();
     delete documentData.__v;
     delete documentData.tenantId;
 
     res.status(201).json({
-      message: "Document uploaded successfully!",
+      message: `${type === "proposal" ? "Proposal" : "Document"} uploaded successfully!`,
       document: documentData,
     });
   } catch (error) {
@@ -158,14 +117,13 @@ exports.uploadDocument = async (req, res, next) => {
   }
 };
 
-
 // @desc    Get ALL documents for the agency (Global Hub)
 // @route   GET /api/v1/documents
 // @access  Private (Agency Admin only)
 exports.getAllDocuments = async (req, res, next) => {
   try {
     const { projectId, type } = req.query;
-    
+
     let query = { tenantId: req.tenantId };
 
     if (projectId) query.projectId = projectId;
@@ -204,17 +162,19 @@ exports.deleteDocument = async (req, res, next) => {
 
     if (document.pdfFileUrl) {
       const filePathMatch = document.pdfFileUrl.split("/public/proposals/")[1];
-      
+
       if (filePathMatch) {
         const cleanFilePath = filePathMatch.split("?")[0];
-        
+
         const { error: supabaseError } = await supabase.storage
           .from("proposals")
           .remove([cleanFilePath]);
 
         if (supabaseError) {
           console.error("Supabase Deletion Error:", supabaseError);
-          return res.status(500).json({ error: "Failed to delete file from cloud storage." });
+          return res
+            .status(500)
+            .json({ error: "Failed to delete file from cloud storage." });
         }
       }
     }
