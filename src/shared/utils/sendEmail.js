@@ -18,7 +18,7 @@ const sendWelcomeEmail = async (
 
   try {
     const { data, error } = await resend.emails.send({
-      from: "Acme <onboarding@resend.dev>", // Do not change this on the free tier
+      from: "ClientSync <onboarding@techryxai.tech>",
       to: [email],
       subject: `Your account for ${agencyName} is ready`,
       html: `
