@@ -8,6 +8,7 @@ const {
   deleteUser,
 } = require("./user.controller");
 const requireAuth = require("../../shared/middleware/requireAuth");
+const requireRole = require("../../shared/middleware/requireRole");
 const requireTenant = require("../../shared/middleware/requireTenant");
 
 const router = express.Router();
@@ -15,10 +16,10 @@ const router = express.Router();
 router.use(requireAuth);
 router.use(requireTenant);
 
-router.post("/", createUser);
+router.post("/", requireRole("agency_admin"), createUser);
 router.get("/", getUsers);
 router.patch("/changepassword", changePassword);
-router.patch("/:id", updateUser);
-router.delete("/:id", deleteUser);
-
+router.patch("/:id", requireRole("agency_admin"), updateUser);
+router.delete("/:id", requireRole("agency_admin"), deleteUser);
+  
 module.exports = router;

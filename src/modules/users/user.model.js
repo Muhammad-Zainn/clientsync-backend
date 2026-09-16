@@ -28,7 +28,6 @@ const userSchema = new mongoose.Schema(
     clientCompanyName: {
       type: String,
     },
-    // NEW FIELDS FOR LIFECYCLE MANAGEMENT
     isActive: {
       type: Boolean,
       default: true,
@@ -37,6 +36,22 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ["active", "previous", "lead"],
       default: "active",
+    },
+    mustChangePassword: {
+      type: Boolean,
+      default: false,
+    },
+    isVerified: {
+      type: Boolean,
+      default: true,
+    },
+    verificationCode: {
+      type: String,
+      select: false,
+    },
+    verificationCodeExpire: {
+      type: Date,
+      select: false,
     },
   },
   { timestamps: true },
