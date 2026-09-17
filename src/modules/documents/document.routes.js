@@ -3,8 +3,8 @@ const multer = require("multer");
 const {
   getProjectDocuments,
   uploadDocument, 
-  getAllDocuments, // <-- Imported
-  deleteDocument,  // <-- Imported
+  getAllDocuments,
+  deleteDocument, 
 } = require("./document.controller");
 const requireAuth = require("../../shared/middleware/requireAuth");
 const requireTenant = require("../../shared/middleware/requireTenant");

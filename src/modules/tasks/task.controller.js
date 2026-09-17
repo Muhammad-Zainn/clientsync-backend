@@ -53,7 +53,6 @@ exports.getProjectTasks = async (req, res, next) => {
   try {
     const { projectId } = req.params;
 
-    // SANITIZATION: Added .select() and .lean()
     const tasks = await Task.find({
       projectId,
       tenantId: req.tenantId,
@@ -79,7 +78,6 @@ exports.updateTask = async (req, res, next) => {
     const { id } = req.params;
     const updates = req.body;
 
-    // SANITIZATION: Chain .select() and .lean() to the update query
     const task = await Task.findOneAndUpdate(
       { _id: id, tenantId: req.tenantId },
       updates,

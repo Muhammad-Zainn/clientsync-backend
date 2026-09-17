@@ -1,5 +1,4 @@
 const express = require("express");
-// Make sure updateUser and deleteUser are added to this list!
 const {
   createUser,
   getUsers,

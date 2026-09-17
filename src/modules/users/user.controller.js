@@ -2,7 +2,7 @@ const User = require("./user.model");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const Project = require("../projects/project.model");
-const { sendWelcomeEmail } = require("../../shared/utils/sendEmail"); // Adjust path if necessary
+const { sendWelcomeEmail } = require("../../shared/utils/sendEmail");
 
 // @desc    Create a new user (Staff or Client) for the Agency
 // @route   POST /api/v1/users

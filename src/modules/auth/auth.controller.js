@@ -3,14 +3,19 @@ const jwt = require("jsonwebtoken");
 const Tenant = require("../tenants/tenant.model");
 const User = require("../../modules/users/user.model");
 
-const getCookieOptions = () => {
+const getCookieOptions = (isLogout = false) => {
   const isProduction = process.env.NODE_ENV === "production";
-  return {
+  const options = {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
-    maxAge: 24 * 60 * 60 * 1000, // 1 day
   };
+
+  if (!isLogout) {
+    options.maxAge = 24 * 60 * 60 * 1000;
+  }
+
+  return options;
 };
 
 // @desc    Register a new Agency (Tenant) and their Admin User
@@ -58,7 +63,6 @@ exports.registerAgency = async (req, res, next) => {
 
     res.status(201).json({
       message: "Agency registered successfully!",
-      token,
       user: {
         id: user._id,
         fullName: user.fullName,
@@ -109,7 +113,6 @@ exports.login = async (req, res, next) => {
 
     res.status(200).json({
       message: "Login successful!",
-      token,
       user: {
         id: user._id,
         fullName: user.fullName,
@@ -125,6 +128,6 @@ exports.login = async (req, res, next) => {
 // @desc    Logout user and clear cookie
 // @route   POST /api/v1/auth/logout
 exports.logout = async (req, res) => {
-  res.clearCookie("token", getCookieOptions());
+  res.clearCookie("token", getCookieOptions(true));
   res.status(200).json({ message: "Logged out successfully." });
 };

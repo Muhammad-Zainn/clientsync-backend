@@ -13,8 +13,6 @@ const requireAuth = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // Attach the decoded payload (userId, tenantId, role) to the request
     req.user = decoded;
 
     next();

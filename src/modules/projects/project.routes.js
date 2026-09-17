@@ -2,7 +2,7 @@ const express = require("express");
 const {
   createProject,
   getProjects,
-  getProject, // <-- Imported the new function
+  getProject,
   updateProject,
   deleteProject,
 } = require("./project.controller");
