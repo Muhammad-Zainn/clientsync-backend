@@ -3,17 +3,21 @@ const Tenant = require("../../modules/tenants/tenant.model");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const sendWelcomeEmail = async (
+/**
+ * 1. For invited users (Team/Clients) setting up their account
+ */
+const sendInviteSetupEmail = async (
   tenantId,
   email,
   fullName,
-  tempPassword,
   role,
+  rawToken
 ) => {
   const tenant = await Tenant.findById(tenantId);
   const agencyName = tenant ? tenant.name : "Agency Portal";
-
-  const loginUrl = `${process.env.FRONTEND_URL}/login`;
+  
+  // Notice we use setup-password with the token instead of /login
+  const setupUrl = `${process.env.FRONTEND_URL}/setup-password?token=${encodeURIComponent(rawToken)}`;
   const readableRole = role.replace("_", " ");
 
   try {
@@ -32,13 +36,13 @@ const sendWelcomeEmail = async (
             <p style="margin: 0 0 8px 0; font-size: 13px; color: #8C8880;">EMAIL ADDRESS</p>
             <p style="margin: 0 0 16px 0; font-size: 15px; font-weight: bold; color: #1C1B1A; font-family: monospace;">${email}</p>
             
-            <p style="margin: 0 0 8px 0; font-size: 13px; color: #8C8880;">TEMPORARY PASSWORD</p>
-            <p style="margin: 0; font-size: 16px; font-weight: bold; color: #1C1B1A; font-family: monospace; letter-spacing: 1px;">${tempPassword}</p>
+            <p style="margin: 0 0 8px 0; font-size: 13px; color: #8C8880;">ACCOUNT SETUP</p>
+            <p style="margin: 0; font-size: 14px; color: #59564F;">Please click the button below to set your permanent password. This link will expire in 30 minutes.</p>
           </div>
 
           <div style="margin-top: 24px;">
-            <a href="${loginUrl}" style="display: inline-block; background-color: #1C1B1A; color: #ffffff; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 500;">
-              Log In Now
+            <a href="${setupUrl}" style="display: inline-block; background-color: #1C1B1A; color: #ffffff; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 500;">
+              Set Password & Log In
             </a>
           </div>
         </div>
@@ -47,11 +51,52 @@ const sendWelcomeEmail = async (
 
     if (error) {
       console.error("Resend API Error:", error);
-      throw new Error("Failed to send email");
+      throw new Error(`Email delivery failed: ${error.message}`);
     }
   } catch (error) {
     console.error("Email Sending Error:", error);
+    // Rethrowing ensures the API fails immediately if the email bounces
+    throw error; 
   }
 };
 
-module.exports = { sendWelcomeEmail };
+/**
+ * 2. For the Agency Admin verifying their initial sign-up
+ */
+const sendVerificationEmail = async (email, fullName, rawToken) => {
+  const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${encodeURIComponent(rawToken)}`;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: "ClientSync <onboarding@client-sync.app>",
+      to: [email],
+      subject: "Welcome to ClientSync - Verify your email",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ECEAE3; border-radius: 12px; background-color: #FAF9F5;">
+          <h2 style="color: #1C1B1A; margin-top: 0;">Welcome to ClientSync, ${fullName}!</h2>
+          <p style="color: #59564F; font-size: 14px;">
+            Thanks for creating your agency account. Please verify your email address to get started. This link will expire in 24 hours.
+          </p>
+          
+          <div style="margin-top: 24px;">
+            <a href="${verifyUrl}" style="display: inline-block; background-color: #1C1B1A; color: #ffffff; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 500;">
+              Verify Email Address
+            </a>
+          </div>
+        </div>
+      `,
+    });
+
+    if (error) {
+      throw new Error(`Email delivery failed: ${error.message}`);
+    }
+  } catch (error) {
+    console.error("Email Sending Error:", error);
+    throw error;
+  }
+};
+
+module.exports = { 
+  sendInviteSetupEmail, 
+  sendVerificationEmail 
+};

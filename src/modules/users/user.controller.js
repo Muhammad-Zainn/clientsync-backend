@@ -2,7 +2,8 @@ const User = require("./user.model");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const Project = require("../projects/project.model");
-const { sendWelcomeEmail } = require("../../shared/utils/sendEmail");
+const { sendInviteSetupEmail } = require("../../shared/utils/sendEmail");
+const { generateOpaqueToken } = require("../../shared/utils/crypto");
 
 // @desc    Create a new user (Staff or Client) for the Agency
 // @route   POST /api/v1/users
@@ -17,19 +18,30 @@ exports.createUser = async (req, res, next) => {
       return res.status(400).json({ error: "Email already in use." });
     }
 
-    const tempPassword = crypto.randomBytes(4).toString("hex") + "!9";
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(tempPassword, salt);
+    // 1. Generate the secure single-use setup token (valid for 30 minute)
+    const { rawToken, tokenHash } = generateOpaqueToken();
+    const tokenExpiresAt = new Date(Date.now() + 30 * 60 * 1000);
 
+    // 2. Generate a dummy password hash (satisfies the schema until they set their own)
+    const dummyPassword = crypto.randomBytes(16).toString("hex");
+    const salt = await bcrypt.genSalt(10);
+    const dummyPasswordHash = await bcrypt.hash(dummyPassword, salt);
+
+    // 3. Create the user with the new secure setup fields
     const user = await User.create({
       tenantId: req.tenantId,
       fullName,
       email,
-      passwordHash,
+      passwordHash: dummyPasswordHash,
       role: role || "client",
       clientCompanyName,
+      requiresPasswordChange: true,
+      passwordSetupTokenHash: tokenHash,
+      passwordSetupTokenExpiresAt: tokenExpiresAt,
+      isVerified: true, // Verified inherently by clicking the email link
     });
 
+    // 4. Handle Staff Project Assignments
     if (
       user.role === "agency_staff" &&
       Array.isArray(assignedProjects) &&
@@ -41,20 +53,29 @@ exports.createUser = async (req, res, next) => {
       );
     }
 
+    // 5. Send the setup email with the raw token
     try {
-      await sendWelcomeEmail(
+      await sendInviteSetupEmail(
         req.tenantId,
         email,
         fullName,
-        tempPassword,
         user.role,
+        rawToken,
       );
     } catch (emailError) {
-      console.error("Welcome email failed to send:", emailError);
+      // Failsafe: Rollback the user creation if the email fails to send
+      await User.findByIdAndDelete(user._id);
+      console.error(
+        "Welcome email failed to send, rolling back user:",
+        emailError,
+      );
+      return res.status(500).json({
+        error: "Failed to send invitation email. User creation aborted.",
+      });
     }
 
     res.status(201).json({
-      message: "User created and credentials emailed successfully!",
+      message: "User created and setup invitation sent successfully!",
       user: {
         id: user._id,
         fullName: user.fullName,

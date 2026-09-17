@@ -37,6 +37,26 @@ const userSchema = new mongoose.Schema(
       enum: ["active", "previous", "lead"],
       default: "active",
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    requiresPasswordChange: {
+      type: Boolean,
+      default: false,
+    },
+    verificationTokenHash: {
+      type: String,
+    },
+    verificationTokenExpiresAt: {
+      type: Date,
+    },
+    passwordSetupTokenHash: {
+      type: String,
+    },
+    passwordSetupTokenExpiresAt: {
+      type: Date,
+    },
   },
   { timestamps: true },
 );
