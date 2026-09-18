@@ -76,11 +76,14 @@ exports.getProjectTasks = async (req, res, next) => {
 exports.updateTask = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const updates = req.body;
+
+    // Explicitly destructure only the allowed schema fields
+    const { title, description, status, projectId } = req.body;
 
     const task = await Task.findOneAndUpdate(
       { _id: id, tenantId: req.tenantId },
-      updates,
+      // Pass the destructured object directly
+      { title, description, status, projectId },
       { new: true, runValidators: true },
     )
       .select("-__v -tenantId")

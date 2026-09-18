@@ -15,7 +15,15 @@ const hashToken = (token) => {
   return crypto.createHash("sha256").update(token).digest("hex");
 };
 
+// Generates a cryptographically secure 6-digit OTP
+const generateOTP = () => {
+  // crypto.randomInt(min, max) is cryptographically secure. 
+  // min is inclusive (100000), max is exclusive (1000000).
+  return crypto.randomInt(100000, 1000000).toString();
+};
+
 module.exports = {
   generateOpaqueToken,
   hashToken,
+  generateOTP,
 };
