@@ -22,7 +22,8 @@ const taskSchema = new mongoose.Schema(
       required: true,
     },
     tenantId: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId, // Fixed: Changed from String to ObjectId
+      ref: "Tenant",
       required: true,
     },
   },

@@ -3,7 +3,6 @@ const express = require("express");
 const path = require("path");
 const cors = require("cors");
 const helmet = require("helmet");
-const rateLimit = require("express-rate-limit");
 const cookieParser = require("cookie-parser");
 
 const connectDB = require("./config/db");
@@ -15,6 +14,7 @@ const userRoutes = require("./modules/users/user.routes");
 const documentRoutes = require("./modules/documents/document.routes");
 const dashboardRoutes = require("./modules/dashboard/dashboard.routes");
 const taskRoutes = require("./modules/tasks/task.routes");
+const { globalApiLimiter } = require("./shared/middleware/rateLimiter");
 
 const app = express();
 
@@ -38,12 +38,7 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 1000,
-  message: { error: "Too many requests from this IP, please try again later." },
-});
-app.use("/api", limiter);
+app.use("/api", globalApiLimiter);
 
 app.use(express.json({ limit: "10kb" }));
 app.use(cookieParser());

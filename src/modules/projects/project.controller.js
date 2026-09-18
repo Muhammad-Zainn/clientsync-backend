@@ -108,11 +108,15 @@ exports.getProject = async (req, res, next) => {
 exports.updateProject = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const updates = req.body;
+
+    // Explicitly destructure only the allowed schema fields
+    const { title, status, budget, dueDate, clientId, assignedStaff } =
+      req.body;
 
     const project = await Project.findOneAndUpdate(
       { _id: id, tenantId: req.tenantId },
-      updates,
+      // Pass the destructured object directly
+      { title, status, budget, dueDate, clientId, assignedStaff },
       {
         returnDocument: "after",
         runValidators: true,
@@ -129,6 +133,7 @@ exports.updateProject = async (req, res, next) => {
     next(error);
   }
 };
+
 
 // @desc    Delete a Project
 // @route   DELETE /api/v1/projects/:id
